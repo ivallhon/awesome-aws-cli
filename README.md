@@ -78,7 +78,7 @@ ASCII table output. This is very useful for easier visualization of data.
 **Command:**
 
 ```bash
-$ aws ec2 describe-availability-zones --query 'AvailabilityZones[].{AZName: "ZoneName", AZ_Id: "ZoneId"}' --output table
+aws ec2 describe-availability-zones --query 'AvailabilityZones[].{AZName: "ZoneName", AZ_Id: "ZoneId"}' --output table
 ```
 
 **Output:**
