@@ -8,16 +8,16 @@ To learn about AWS CLI configuration tips, visit the [Getting Started](docs/Gett
 
 ## Common levers to modify CLI behavior
 
-The AWS CLI behaves according to its default setup or to explicit settings. The CLI honors configuration in the following order:
+The AWS CLI behaves according to its default setup or to explicit settings. The AWS CLI honors configuration in the following order:
 
 1. Command Parameter
 2. Environment Variable
 3. Profile setting in`~/.aws/config`
 
+This means that you can keep your commonly preferred settings in your profiles configuration, alter specific settings on a shell session with environment variables (if running multiple commands) or simply use an explicity parameter on commands as needed. 
+
 > [!NOTE]
 > The AWS CLI v2 also pulls configuration from the EC2 Metadata Service (e.g. set the default AWS region to the one where the Instance is running on) 
-
-For more information, read [Configuration and credentials precedence](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html#configure-precedence).
 
 | Configuration | Command Parameter | Environment Variable(s) | Profile setting parameter | Examples |
 |---|---|---|---|---|
@@ -30,14 +30,16 @@ For more information, read [Configuration and credentials precedence](https://do
 | Full auto-prompt | `--cli-auto-prompt` | `AWS_CLI_AUTO_PROMPT` | `cli_auto_prompt` | export `AWS_CLI_AUTO_PORMPT`=`on` |
 | Debug output | `--debug` | N/A | N/A | `aws ec2 describe-instances --debug` |
 
-### Output Formats
+For more information, read [Configuration and credentials precedence](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html#configure-precedence).
+
+## Output Formats
 
 The AWS CLI supports multiple output formats for the commands, being the most commonly used `json`. However, there are a couple of very interesting formats to highlight:
 
 * text
 * table
 
-#### text
+### text
 
 Plain text output. This is very useful to concatenate AWS CLI commands and iterate with one command throught the output of another.
 
@@ -67,7 +69,7 @@ eu-south-2c     eus2-az3
 ...
 ```
 
-#### table
+### table
 
 ASCII table output. This is very useful for easier visualization of data.
 
@@ -98,7 +100,7 @@ $ aws ec2 describe-availability-zones --query 'AvailabilityZones[].{AZName: "Zon
 
 For more information on the different AWS CLI output formats, visit the AWS CLI [documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-usage-output-format.html).
 
-### Client-side filtering
+## Client-side filtering
 
 The AWS CLI uses [JMESPath](https://jmespath.org/) for client-side filtering CLI output via the global `--query` parameter. This allows for very powerful output filtering and manipulation capabilities without the need of piping the output to additional tools. 
 
@@ -109,9 +111,9 @@ For more detailed information on client-side filtering, visit the AWS CLI [docum
 
 Examples:
 
-#### Filter entries of a list based on a specific field value
+### Filter entries of a list based on a specific field value
 
-##### String value
+#### String value
 
 **Example:** Describe all non-default AWS regions (explicitely opted-in)
 
@@ -131,7 +133,7 @@ Output:
 ]
 ```
 
-##### Integer value
+#### Integer value
 
 **Example:** Find EBS volumes bigger than 50 GB
 
@@ -150,7 +152,7 @@ Output:
 ]`
 ```
 
-##### Date value
+#### Date value
 
 **Example:** Find Snapshots older than `date`
 
@@ -168,10 +170,10 @@ aws ec2 describe-snapshots --owner self --query 'Snapshots[?StartTime<=`2025-01-
 ]`
 ```
 
-#### Manipulate/modify the command output
+### Manipulate/modify the command output
 
 
-##### Select a subset of fields to return in the command output
+#### Select a subset of fields to return in the command output
 
 **Example:** Describe all instances. Return a table with the instance list containing: AvailabilityZone, InstanceId, InstanceType, VPCId and SubnetId.
 
@@ -196,7 +198,7 @@ aws ec2 describe-instances --query 'Reservations[].Instances[].[Placement.Availa
 +------------+----------------------+------------+------------------------+-----------------------------+
 ```
 
-##### Modify the output format
+#### Modify the output format
 
 **Example:** Describe all instances. Return a list in JSON in the following format: { "AvailabilityZone": "", "Id": "", "Type": "", "VPC": "", "Subnet": "" }
 
@@ -234,7 +236,7 @@ aws ec2 describe-instances --query 'Reservations[].Instances[] | [].{"Availabili
 ]
 ```
 
-##### Sort the output based on a specific field
+#### Sort the output based on a specific field
 
 **Example:**: Same command as in the previous section, but sort the output by AvailabilityZone.
 
