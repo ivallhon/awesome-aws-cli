@@ -2,7 +2,7 @@
 
 This page has a compilation of useful AWS CLI commands organized by AWS service.
 
-## EC2
+## EC2 
 
 ### List instances that have a specific tag key, shot its tag value and a subset of relevant data
 
