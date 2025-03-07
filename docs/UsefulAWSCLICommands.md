@@ -6,8 +6,8 @@ This page has a compilation of useful AWS CLI commands organized by AWS service.
 
 ### List instances that have a specific tag key, shot its tag value and a subset of relevant data
 
-The following command uses server-side filtering (`--filter`) to list EC2 instances that have the tag `Name`. Then, using client-side filtering reduces the output to a the fields `InstanceId`, `InstanceType`, `ÀvailabilityZone`, `PrivateIP`, `PublicIP` and ` <Value of the given tag key>`, sorted by ÀvailabilityZone.
-
+The following command uses server-side filtering (`--filter`) to list EC2 instances that have the tag `Name`. Then, using client-side filtering reduces the output to a the fields `InstanceId`, `InstanceType`, `ÀvailabilityZone`, `PrivateIP`, `PublicIP` and ` <Value of the given tag key>`, sorted by `AvailabilityZone`.
+s
 ```bash
 export TAG_KEY=Name
 
@@ -74,7 +74,9 @@ aws ec2 run-instances \
 ```
 
 > [!NOTE]
-> AWS publishes public parameters for multiple Operating Systems AMIs, e.g. Bottlerocket, Ubuntu, Debian, Windows...  For more information, go to the AWS SSM [documentation](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-finding-public-parameters.html).
+> AWS publishes public parameters for multiple Operating Systems AMIs, e.g. Bottlerocket, Ubuntu, Debian, Windows... For more information, go to the AWS SSM [documentation](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-finding-public-parameters.html).
+
+> [!TIP]
 > Normally, companies emit their own Golden AMIs. Using shared [SSM parameters](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-shared-parameters.html) you can publish in SSM the latest Golden AMI Ids of your company.  
 
 ## S3
