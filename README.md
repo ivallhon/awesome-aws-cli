@@ -1,6 +1,8 @@
 # AWS CLI Pro-level
 
-As someone who works on Cloud Integrations at an Independent Software Vendot (ISV), I find myself diving deep into AWS API behavior as well as data extraction using the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html). This repository contains exmplanations, tips and tricks and example one-liners to master the AWS CLI. 
+As someone who works on Cloud Integrations at an Independent Software Vendor (ISV), I find myself diving deep into AWS API behavior as well as data extraction using the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html). This repository contains explanations, tips and tricks, and example one-liners to master the AWS CLI. 
+
+To jump straight into example useful commands, go to the [Useful AWS CLI Commands](/docs/UsefulAWSCLICommands.md) document.
 
 To learn about AWS CLI configuration tips, visit the [Getting Started](docs/GettingStarted.md) documentation.
 
@@ -28,12 +30,79 @@ For more information, read [Configuration and credentials precedence](https://do
 | Full auto-prompt | `--cli-auto-prompt` | `AWS_CLI_AUTO_PROMPT` | `cli_auto_prompt` | export `AWS_CLI_AUTO_PORMPT`=`on` |
 | Debug output | `--debug` | N/A | N/A | `aws ec2 describe-instances --debug` |
 
+### Output Formats
+
+The AWS CLI supports multiple output formats for the commands, being the most commonly used `json`. However, there are a couple of very interesting formats to highlight:
+
+* text
+* table
+
+#### text
+
+Plain text output. This is very useful to concatenate AWS CLI commands and iterate with one command throught the output of another.
+
+**Example:** List the availability zones in each AWS region, showing only the `ZoneName` and `ZoneId`.
+
+**Command:**
+
+```bash
+for region in $(aws ec2 describe-regions --query 'Regions[].RegionName' --output text); do aws ec2 describe-availability-zones --region $region --query 'AvailabilityZones[].[ZoneName, ZoneId]' --output text; done
+```
+
+**Output:**
+
+```bash
+ap-south-2a     aps2-az1
+ap-south-2b     aps2-az2
+ap-south-2c     aps2-az3
+ap-south-1a     aps1-az1
+ap-south-1b     aps1-az3
+ap-south-1c     aps1-az2
+eu-south-1a     eus1-az1
+eu-south-1b     eus1-az2
+eu-south-1c     eus1-az3
+eu-south-2a     eus2-az1
+eu-south-2b     eus2-az2
+eu-south-2c     eus2-az3
+...
+```
+
+#### table
+
+ASCII table output. This is very useful for easier visualization of data.
+
+**Example:** Same query as before but structure the output in table format with custom column names.
+
+**Command:**
+
+```bash
+$ aws ec2 describe-availability-zones --query 'AvailabilityZones[].{AZName: "ZoneName", AZ_Id: "ZoneId"}' --output table
+```
+
+**Output:**
+
+```bash
+----------------------------
+| DescribeAvailabilityZones|
++-------------+------------+
+|   AZName    |   AZ_Id    |
++-------------+------------+
+|  us-east-1a |  use1-az6  |
+|  us-east-1b |  use1-az1  |
+|  us-east-1c |  use1-az2  |
+|  us-east-1d |  use1-az4  |
+|  us-east-1e |  use1-az3  |
+|  us-east-1f |  use1-az5  |
++-------------+------------+
+```
+
+For more information on the different AWS CLI output formats, visit the AWS CLI [documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-usage-output-format.html).
 
 ### Client-side filtering
 
-The AWS CLI uses [JMESPath](https://jmespath.org/) for client-side filtering CLI output via the global `--query` parameter. This allows for very powerful output filtering and manipulation capabilities without the need of additional tools. 
+The AWS CLI uses [JMESPath](https://jmespath.org/) for client-side filtering CLI output via the global `--query` parameter. This allows for very powerful output filtering and manipulation capabilities without the need of piping the output to additional tools. 
 
-For more detailed instructions on client-side filtering, visit the AWS CLI [documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-usage-filter.html#cli-usage-filter-client-side).
+For more detailed information on client-side filtering, visit the AWS CLI [documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-usage-filter.html#cli-usage-filter-client-side).
 
 > [!IMPORTANT]
 > If you're working with a large amount of data, consider using server-side filtering first if supported by the API you're using, then do finer-grained filtering client-side.
@@ -42,9 +111,11 @@ Examples:
 
 #### Filter entries of a list based on a specific field value
 
-##### String value: Describe all opted-in (non-default) AWS regions
+##### String value
 
-Command:
+**Example:** Describe all non-default AWS regions (explicitely opted-in)
+
+**Command:**
 
 ```bash
 aws ec2 describe-regions --query 'Regions[?OptInStatus==`opted-in`].RegionName'
@@ -60,7 +131,9 @@ Output:
 ]
 ```
 
-##### Integer value: Find EBS volumes bigger than 50 GB
+##### Integer value
+
+**Example:** Find EBS volumes bigger than 50 GB
 
 Command:
 
@@ -77,15 +150,17 @@ Output:
 ]`
 ```
 
-##### Date value: Find Snapshots older than `date`
+##### Date value
 
-Command:
+**Example:** Find Snapshots older than `date`
+
+**Command:**
 
 ```bash
 aws ec2 describe-snapshots --owner self --query 'Snapshots[?StartTime<=`2025-01-01`].SnapshotId
 ```
 
-Output:
+**Output:**
 
 ```bash
 [
@@ -95,17 +170,18 @@ Output:
 
 #### Manipulate/modify the command output
 
+
 ##### Select a subset of fields to return in the command output
 
-**Instructions:** Describe all instances. Return a table with the instance list containing: AvailabilityZone, InstanceId, InstanceType, VPCId and SubnetId.
+**Example:** Describe all instances. Return a table with the instance list containing: AvailabilityZone, InstanceId, InstanceType, VPCId and SubnetId.
 
-Command:
+**Command:**
 
 ```bash
 aws ec2 describe-instances --query 'Reservations[].Instances[].[Placement.AvailabilityZone, InstanceId, InstanceType, VpcId, SubnetId]' --output table
 ```
 
-Output:
+**Output:**
 
 ```bash
 ---------------------------------------------------------------------------------------------------------
@@ -122,15 +198,15 @@ Output:
 
 ##### Modify the output format
 
-**Instructions:** Describe all instances. Return a list in JSON in the following format: { "AvailabilityZone": "", "Id": "", "Type": "", "VPC": "", "Subnet": "" }
+**Example:** Describe all instances. Return a list in JSON in the following format: { "AvailabilityZone": "", "Id": "", "Type": "", "VPC": "", "Subnet": "" }
 
-Command:
+**Command:**
 
 ```bash
 aws ec2 describe-instances --query 'Reservations[].Instances[] | [].{"AvailabilityZone":Placement.AvailabilityZone, "Id": InstanceId, "Type": InstanceType, "VPC": VpcId, "Subnet": SubnetId}' --output json
-````
+```
 
-Output:
+**Output:**
 
 ```bash
 [
@@ -160,18 +236,18 @@ Output:
 
 ##### Sort the output based on a specific field
 
-**Instructions**: Same command as in the previous section, but sort the output by AvailabilityZone.
+**Example:**: Same command as in the previous section, but sort the output by AvailabilityZone.
 
 > [!NOTE]
 > This command uses JMESPath functions. For a complete list of available functions, visit the JMESPath [documentation](https://jmespath.org/specification.html#built-in-functions).
 
-Command:
+**Command:**
 
 ```bash
 aws ec2 describe-instances --query 'Reservations[].Instances[] | sort_by([].{"AvailabilityZone":Placement.AvailabilityZone, "Id": InstanceId, "Type": InstanceType, "VPC": VpcId, "Subnet": SubnetId},&AvailabilityZone)' --output json
-````
+```
 
-Output: 
+**Output:**
 
 ```bash
 [
@@ -198,64 +274,3 @@ Output:
     }
 ]
 ```
-
-### Output Formats
-
-The AWS CLI supports multiple output formats for the commands, being the most commonly used `json`. However, there are a couple of very interesting formats to highlight:
-
-#### text
-
-Plain text output. This is very useful to concatenate AWS CLI commands and iterate with one command throught the output of another.
-
-Example:
-
-```bash
-for region in $(aws ec2 describe-regions --query 'Regions[].RegionName' --output text); do aws ec2 describe-availability-zones --region $region --query 'AvailabilityZones[].[ZoneName, ZoneId]' --output text; done
-```
-
-Output:
-
-```bash
-ap-south-2a     aps2-az1
-ap-south-2b     aps2-az2
-ap-south-2c     aps2-az3
-ap-south-1a     aps1-az1
-ap-south-1b     aps1-az3
-ap-south-1c     aps1-az2
-eu-south-1a     eus1-az1
-eu-south-1b     eus1-az2
-eu-south-1c     eus1-az3
-eu-south-2a     eus2-az1
-eu-south-2b     eus2-az2
-eu-south-2c     eus2-az3
-...
-```
-
-#### table
-
-ASCII table output. This is very useful for easier visualization of data
-
-Example:
-
-```bash
-$ aws ec2 describe-availability-zones --query 'AvailabilityZones[].{ZoneName: "ZoneName", ZoneId: "ZoneId"}' --output table
-```
-
-Output:
-
-```bash
-----------------------------
-| DescribeAvailabilityZones|
-+-----------+--------------+
-|  ZoneId   |  ZoneName    |
-+-----------+--------------+
-|  use1-az6 |  us-east-1a  |
-|  use1-az1 |  us-east-1b  |
-|  use1-az2 |  us-east-1c  |
-|  use1-az4 |  us-east-1d  |
-|  use1-az3 |  us-east-1e  |
-|  use1-az5 |  us-east-1f  |
-+-----------+--------------+
-```
-
-For more information on the different AWS CLI output formats, visit the AWS CLI [documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-usage-output-format.html).
