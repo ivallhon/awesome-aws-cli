@@ -238,10 +238,10 @@ aws ec2 describe-instances --query 'Reservations[].Instances[] | [].{"Availabili
 
 #### Sort the output based on a specific field
 
-**Example:**: Same command as in the previous section, but sort the output by AvailabilityZone.
+**Example:** Same command as in the previous section, but sort the output by AvailabilityZone.
 
 > [!NOTE]
-> This command uses JMESPath functions. For a complete list of available functions, visit the JMESPath [documentation](https://jmespath.org/specification.html#built-in-functions).
+> This command uses the JMESPath function `sort_by()`. For a complete list of available functions, visit the JMESPath [documentation](https://jmespath.org/specification.html#built-in-functions).
 
 **Command:**
 

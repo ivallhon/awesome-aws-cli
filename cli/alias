@@ -1,0 +1,26 @@
+[toplevel]
+whoami = aws sts get-caller-identity
+describe-azs = aws ec2 describe-availability-zones --query 'AvailabilityZones[].{Name: ZoneName, Id: ZoneId}'
+
+[command ec2]
+get-instanceid-by-name =
+   !f() {
+      aws ec2 describe-instances --query 'Reservations[].Instances[].InstanceId' --filter Name=tag:Name,Values=${1} --output text
+   }; f
+
+get-running-instanceid-by-name =
+   !f() {
+      aws ec2 describe-instances --query 'Reservations[].Instances[].InstanceId' --filters Name=tag:Name,Values=${1} Name=instance-state-name,Values=running --output text
+   }; f
+
+ssh-by-name =
+   !f() {
+      INSTANCE_ID=$(aws ec2 get-running-instanceid-by-name ${1} --output text);
+      if [ -z "$INSTANCE_ID" ]
+      then
+        echo "Error! No EC2 Instance exists with name ${1}"
+        exit 1
+      else
+        aws ssm start-session --target $INSTANCE_ID
+      fi
+   }; f

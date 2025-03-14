@@ -1,0 +1,104 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: |
+  This template creates a playground Amazon Linux 2023 EC2 instance to demonstrate AWS CLI features
+
+Metadata:
+  Author: Isaac Vallhonrat
+  GitHubProfile: https://github.com/ivallhon
+
+Parameters:
+  Name: 
+    Description: Friendly Name for the Playground EC2 Instance
+    Type: String
+    Default: aws-cli-playground
+  VpcId:
+    Description: URL of your Dynatrace environment. If you're deploying to Dynatrace Managed tenant, enter here the URL of your tenant AG without the trailing API endpoint, e.g. https://{your-activegate-domain}:9999/e/{your-environment-id}
+    Type: String
+    Default: ""
+  SubnetId:
+    Description: Subnet where to launch the EC2 Instance
+    Type: String
+    Default: ""
+
+Conditions:
+  VpcIsDefined: !Not [!Equals [!Ref VpcId, "" ]]
+  SubnetIsDefined: !Not [!Equals [!Ref SubnetId, "" ]]
+
+Resources:
+  PlaygroundEC2Instance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Init:
+        config: 
+          files:
+            /home/ssm-user/.aws/cli/alias:
+              mode: '000644'
+              owner: ssm-user
+              group: ssm-user
+              content: |
+                [toplevel]
+                whoami = aws sts get-caller-identity
+                describe-azs = aws ec2 describe-availability-zones --query 'AvailabilityZones[].{Name: ZoneName, Id: ZoneId}'
+
+                [command ec2]
+                get-instanceid-by-name =
+                   !f() {
+                      aws ec2 describe-instances --query 'Reservations[].Instances[].InstanceId' --filter Name=tag:Name,Values=${1} --output text
+                   }; f
+
+                get-running-instanceid-by-name =
+                   !f() {
+                      aws ec2 describe-instances --query 'Reservations[].Instances[].InstanceId' --filters Name=tag:Name,Values=${1} Name=instance-state-name,Values=running --output text
+                   }; f
+
+                ssh-by-name =
+                   !f() {
+                      INSTANCE_ID=$(aws ec2 get-running-instanceid-by-name ${1} --output text);
+                      if [ -z "$INSTANCE_ID" ]
+                      then
+                        echo "Error! No EC2 Instance exists with name ${1}"
+                        exit 1
+                      else
+                        aws ssm start-session --target $INSTANCE_ID
+                      fi
+                   }; f
+          commands:
+            enable_cli_autocompletion:
+              command: |
+                export AUTOCOMPLETE_PATH=$(dirname $(which aws_completer)) && \
+                echo "export PATH=$AUTOCOMPLETE_PATH:$PATH" >> /home/ssm-user/.bashrc && \
+                echo 'complete -C "'"$AUTOCOMPLETE_PATH"'/aws_completer" aws' >> /home/ssm-user/.bashrc
+    Properties:
+      ImageId: "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64}}"
+      InstanceType: "t4g.small"
+      IamInstanceProfile: !Ref InstanceProfile
+      UserData: !Base64
+        Fn::Sub: |
+          #!/bin/bash -xe
+          yum update -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource PlaygroundEC2Instance --region ${AWS::Region}
+      Tags:
+        - Key: Name
+          Value: !Ref Name
+
+  IAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal: 
+              Service: 
+                - ec2.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/ReadOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonSSMManagedEC2InstanceDefaultPolicy
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref IAMRole
