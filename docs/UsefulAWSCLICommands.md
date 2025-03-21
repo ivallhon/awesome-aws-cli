@@ -82,16 +82,85 @@ aws ec2 run-instances \
 > [!TIP]
 > Normally, companies generate periodically their own Golden AMIs. Using shared [SSM parameters](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-shared-parameters.html) you can publish in SSM the latest Golden AMI Ids of your company.  
 
+## CloudWatch
+
+### List all metric names and dimensions 
+
+You might want to take a look at the available CloudWatch metrics in your account in general, or within a given namespace. You can also concatenate the output with Linux command line utilities to get the number of occurrences for each.
+
+```bash
+aws cloudwatch list-metrics --query 'Metrics[].{Namespace: Namespace, Key: MetricName}' --output text | sort | uniq -c
+```
+
+**Output:**
+
+```bash
+   2 4XXError	AWS/ApiGateway
+ 141 4xxErrors	AWS/S3/Storage-Lens
+   2 5XXError	AWS/ApiGateway
+ 141 5xxErrors	AWS/S3/Storage-Lens
+   1 AccountMaxReads	AWS/Cassandra
+```
+
 ## S3
 
-### Delete a large number of S3 Objects
-
 ### Delete a large number of S3 objects from an S3 bucket with versioning enabled
+
+When you're working with an S3 bucket that has versioning enabled, you need to explicitly delete each object version, otherwise, a DeleteMarker is created for each deleted object. 
+
+The `aws s3api list-object-versions` command provides you a list of object versions. You can then use the `aws s3api delete-objects` command to pass a list of up to 1,000 object versions in a JSON structure like the following:
+
+```json
+{
+    "Objects": [
+        {
+            "Key": "key",
+            "VersionId": "version-id"
+        },
+        ...
+    ]
+}
+```
+
+You can then concatenate the two commands to delete all the objects:
+
+```bash
+export BUCKET_NAME=your_bucket_name
+aws s3api delete-objects --bucket $BUCKET_NAME --delete "$(aws s3api list-object-versions --bucket $BUCKET_NAME --query '{"Objects": Versions[].{Key:Key,VersionId:VersionId}}')"
+```
+
+If your bucket has more than 1,000 object versions, you can disable pagination on `aws s3api list-object-versions` and iterate in blocks of 1,000 objects with the `--max-keys` parameter like the example script below (requires `jq`):
+
+```bash
+list_object_versions() {
+    echo $(aws s3api list-object-versions --bucket $BUCKET_NAME --no-cli-pager --max-keys 50 --query '{"Objects": Versions[].{Key:Key,VersionId:VersionId}}')
+}
+delete_object_versions() {
+    aws s3api delete-objects --bucket $BUCKET_NAME --delete "$1"; 
+}
+
+delete_object_versions "$(list_object_versions)"
+
+continue=1
+while [ $continue -eq 1 ];
+do
+    OBJECT_VERSIONS=$(list_object_versions)
+    NUM_OBJECTS=$(echo $OBJECT_VERSIONS | jq '.Objects | length')
+    if [ $NUM_OBJECTS -gt 0 ];
+    then
+        delete_object_versions "$OBJECT_VERSIONS";
+    else
+        continue=0
+        echo "All Object versions have been deleted";
+    fi
+done
+```
+
+> [!NOTE]
+> The `list_object_versions` limits the page size to 50 S3 Object versions to simulate multiple pages without requiring 1,000+ objects. To use this on a large number of objects just remove the --max-keys parameter to iterate in 1,000 object chunks. 
 
 ## Lambda
 
 ## ECS
-
-## CloudWatch
 
 ## Systems Manager
