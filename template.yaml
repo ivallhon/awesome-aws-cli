@@ -19,10 +19,15 @@ Parameters:
     Description: Subnet where to launch the EC2 Instance
     Type: String
     Default: ""
+  KeyPair:
+    Description: Amazon EC2 key pair
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: ""
 
 Conditions:
   VpcIsDefined: !Not [!Equals [!Ref VpcId, "" ]]
   SubnetIsDefined: !Not [!Equals [!Ref SubnetId, "" ]]
+  KeyPairIsDefined: !Not [!Equals [!Ref KeyPair, "" ]]
 
 Resources:
   PlaygroundEC2Instance:
@@ -31,15 +36,15 @@ Resources:
       AWS::CloudFormation::Init:
         config: 
           files:
-            /home/ssm-user/.aws/cli/alias:
+            /home/ec2-user/.aws/cli/alias:
               mode: '000644'
-              owner: ssm-user
-              group: ssm-user
+              owner: ec2-user
+              group: ec2-user
               content: |
                 [toplevel]
                 whoami = sts get-caller-identity
                 describe-azs = ec2 describe-availability-zones --query 'AvailabilityZones[].{Name: ZoneName, Id: ZoneId}'
-                
+
                 # from https://docs.aws.amazon.com/cli/v1/userguide/cli-usage-alias.html
                 myip =
                   !f() {
@@ -119,12 +124,20 @@ Resources:
                           --query 'Parameters[].{Name: Name, AMI: Value, LastModified: LastModifiedDate} | sort_by(@,&Name)' \
                           --recursive
                     }; f
+          packages:
+            yum:
+              git: []
+              python3-pip: []
+              aws-cfn-bootstrap: []
           commands:
             enable_cli_autocompletion:
               command: |
                 export AUTOCOMPLETE_PATH=$(dirname $(which aws_completer)) && \
-                echo "export PATH=$AUTOCOMPLETE_PATH:$PATH" >> /home/ssm-user/.bashrc && \
-                echo 'complete -C "'"$AUTOCOMPLETE_PATH"'/aws_completer" aws' >> /home/ssm-user/.bashrc
+                echo "export PATH=$AUTOCOMPLETE_PATH:$PATH" >> /home/ec2-user/.bashrc && \
+                echo 'complete -C "'"$AUTOCOMPLETE_PATH"'/aws_completer" aws' >> /home/ec2-user/.bashrc
+            install_jmespath_terminal: 
+              command: |
+                pip3 install --no-input git+https://github.com/jmespath-community/jmespath.terminal.git
     Properties:
       ImageId: "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64}}"
       InstanceType: "t4g.small"
@@ -132,11 +145,13 @@ Resources:
       UserData: !Base64
         Fn::Sub: |
           #!/bin/bash -xe
-          yum update -y aws-cfn-bootstrap
           /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource PlaygroundEC2Instance --region ${AWS::Region}
       Tags:
         - Key: Name
           Value: !Ref Name
+      KeyName: !If [ KeyPairIsDefined, !Ref KeyPair, !Ref AWS::NoValue]
+      VPC: !If [ VpcIsDefined, !Ref VpcId, !Ref AWS::NoValue]
+      SubnetId: !If [ SubnetIsDefined, !Ref SubnetId, !Ref AWS::NoValue]
 
   IAMRole:
     Type: AWS::IAM::Role
