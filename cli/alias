@@ -1,8 +1,23 @@
 [toplevel]
-whoami = aws sts get-caller-identity
-describe-azs = aws ec2 describe-availability-zones --query 'AvailabilityZones[].{Name: ZoneName, Id: ZoneId}'
+whoami = sts get-caller-identity
+describe-azs = ec2 describe-availability-zones --query 'AvailabilityZones[].{Name: ZoneName, Id: ZoneId}'
+
+# from https://docs.aws.amazon.com/cli/v1/userguide/cli-usage-alias.html
+myip =
+  !f() {
+    dig +short myip.opendns.com @resolver1.opendns.com
+  }; f
 
 [command ec2]
+list-instances = describe-instances --query 'Reservations[].Instances[] | sort_by([].{AZ: Placement.AvailabilityZone, Id: InstanceId, Type: InstanceType Name: Tags[?Key==`Name`].Value | [0], PublicIP: PublicIpAddress, PrivateIP: PrivateIpAddress, VPC: VpcId, Subnet: SubnetId},&AZ)'
+list-security-groups = describe-security-groups --query 'SecurityGroups[].{Name: GroupName, Id: GroupId, VPC: VpcId}'
+list-vpcs = describe-vpcs --query 'Vpcs[].{Id: VpcId, CIDR: CidrBlock, Name: Tags[?Key==`Name`].Value | [0], IsDefault: IsDefault}' 
+
+describe-instance-by-name =
+   !f() {
+      aws ec2 describe-instances --query 'Reservations[].Instances[]' --filter Name=tag:Name,Values=${1}
+   }; f
+
 get-instanceid-by-name =
    !f() {
       aws ec2 describe-instances --query 'Reservations[].Instances[].InstanceId' --filter Name=tag:Name,Values=${1} --output text
@@ -24,3 +39,45 @@ ssh-by-name =
         aws ssm start-session --target $INSTANCE_ID
       fi
    }; f
+
+# from https://docs.aws.amazon.com/cli/v1/userguide/cli-usage-alias.html
+authorize-my-ip = 
+   !f() {
+      myip=$(aws myip)
+      aws ec2 authorize-security-group-ingress --group-id ${1} --protocol all --port 0-65535 --cidr "$myip/32"
+   }; f
+
+[command ecr]
+docker-login-in-region = 
+   !f() {
+      accountid=$(aws ecr describe-registry --region ${1} --query 'registryId' --output text)
+      aws ecr get-login-password --region ${1} | docker login --username AWS --password-stdin ${accountid}.dkr.ecr.${1}.amazonaws.com
+   }; f
+
+[command ssm]
+
+get-amis-for-os = 
+    !f() {
+       case $1 in
+          amazon-linux)
+              parameter="ami-amazon-linux-latest";;
+          ubuntu-noble)
+              parameter="canonical/ubuntu/server/24.04/stable/current/";;
+          ubuntu-jammy)
+              parameter="canonical/ubuntu/server/22.04/stable/current/";;
+          ubuntu-focal)
+              parameter="canonical/ubuntu/server/20.04/stable/current/";;
+          windows)
+              parameter="ami-windows-latest";;
+          macos)
+              parameter="ec2-macos";;
+           *)
+              echo "invalid OS parameter";
+              exit 1;;
+        esac
+
+        aws ssm get-parameters-by-path \
+          --path "/aws/service/${parameter}" \
+          --query 'Parameters[].{Name: Name, AMI: Value, LastModified: LastModifiedDate} | sort_by(@,&Name)' \
+          --recursive
+    }; f

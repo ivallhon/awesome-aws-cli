@@ -43,7 +43,6 @@ The following command gives you a list of Amazon Linux of Amazon Linux AMI ids a
 aws ssm get-parameters-by-path \
     --path '/aws/service/ami-amazon-linux-latest/' \
     --query 'Parameters[].{Name: Name, AMI: Value, LastModified: LastModifiedDate} | sort_by(@,&Name)' \
-    --output json \
     --output table
 ```
 
@@ -159,8 +158,28 @@ done
 > [!NOTE]
 > The `list_object_versions` limits the page size to 50 S3 Object versions to simulate multiple pages without requiring 1,000+ objects. To use this on a large number of objects just remove the --max-keys parameter to iterate in 1,000 object chunks. 
 
-## Lambda
+## ECR
 
-## ECS
+### Execute docker login in your ECR private registry
+
+When working with Amazon ECR and docker cli, you need to first get a temporary token for docker to authenticate against your ECR registry in a given region. You can add the below bash function to your `~/.aws/cli/alias` file for easy log in.
+
+```bash
+docker-login-in-region() {
+    accountid=$(aws ecr describe-registry --region ${1} --query 'registryId' --output text)
+    aws ecr get-login-password --region ${1} | docker login --username AWS --password-stdin ${accountid}.dkr.ecr.${1}.amazonaws.com
+}
+docker-login-in-region eu-west-1
+```
 
 ## Systems Manager
+
+AWS provides several Systems Manager [public parameters](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-finding-public-parameters.html) to help you find useful information, like the latest published AMIs for different Operating Systems, or the availability of services per region.
+
+### Get Amazon Linux AMIs
+
+```bash
+aws ssm get-parameters-by-path \
+    --path '/aws/service/ami-amazon-linux-latest/' \
+    --query 'Parameters[].{Name: Name, AMI: Value, LastModified: LastModifiedDate} | sort_by(@,&Name)' 
+```
