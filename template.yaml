@@ -129,6 +129,7 @@ Resources:
               git: []
               python3-pip: []
               aws-cfn-bootstrap: []
+              docker: []
           commands:
             enable_cli_autocompletion:
               command: |
@@ -153,7 +154,7 @@ Resources:
       VPC: !If [ VpcIsDefined, !Ref VpcId, !Ref AWS::NoValue]
       SubnetId: !If [ SubnetIsDefined, !Ref SubnetId, !Ref AWS::NoValue]
 
-  IAMRole:
+  EC2IAMRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -173,4 +174,26 @@ Resources:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
-        - !Ref IAMRole
+        - !Ref EC2IAMRole
+  
+  S3RWRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal: 
+              AWS: !GetAtt EC2IAMRole.Arn
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+Outputs:
+  S3FullAccessRole:
+    Description: Role ARN of the IAM role for S3 full access
+    Value: !GetAtt S3RWRole.Arn
+  PlayGroundEC2InstanceId:
+    Description: EC2 Instance Id for the playground instance
+    Value: !Ref PlaygroundEC2Instance
