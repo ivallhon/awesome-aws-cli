@@ -85,6 +85,24 @@ aws ec2 run-instances \
 > [!TIP]
 > Normally, companies generate periodically their own Golden AMIs. Using shared [SSM parameters](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-shared-parameters.html) you can publish in SSM the latest Golden AMI Ids of your company.  
 
+### Create an AMI from an instance, then wait until its status is *Completed* so we can copy it to another region
+
+The following bash script creates an image from a given EC2 instance and then uses a CLI waiter to wait until the AMI is completed.
+
+```bash
+export INSTANCE_ID="i-xxxxxxxxx"
+export AMI_ID=$(aws ec2 create-image --instance-id $INSTANCE_ID --name cli-playground-example --query 'ImageId' --output text)
+
+aws ec2 wait image-available $AMI_ID
+
+if [ $? -eq 0 ] ; then
+    echo "Image $AMI_ID for $INSTANCE_ID completed."
+else
+    echo "The image $AMI_ID is not on a completed state."
+fi
+```
+
+
 ## CloudWatch
 
 ### List all metric names and dimensions 

@@ -2,10 +2,6 @@
 
 This document covers basic AWS CLI setup concepts.
 
-## Configuring the AWS CLI
-
-The AWS CLI configuration is stored in `~/.aws/config`. 
-
 ## Common levers to modify CLI behavior
 
 The AWS CLI behaves according to its default setup or to explicit settings. The AWS CLI honors configuration in the following order:
