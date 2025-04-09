@@ -167,9 +167,7 @@ aws ec2 describe-snapshots --owner self --query 'Snapshots[?StartTime<=`2025-01-
 ```
 
 ### Manipulate/modify the command output
-
-
-#### Select a subset of fields to return in the command output
+#### Select a subset of fields to return in the command output
 
 **Example:** Describe all instances. Return a table with the instance list containing: AvailabilityZone, InstanceId, InstanceType, VPCId and SubnetId.
 

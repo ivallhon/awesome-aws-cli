@@ -1,8 +1,10 @@
 # Awesome AWS CLI
 
-As someone who works on Cloud Integrations at an Independent Software Vendor (ISV), I very often find myself diving deep into AWS APIs using the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html). In this repository I've compiled tips and tricks, example AWS CLI one-liners and useful [aliases](cli/alias) to help you get the most out of the AWS CLI. 
+As someone who works on Cloud Integrations at an Independent Software Vendor (ISV), I very often find myself diving deep into AWS APIs using the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html). In this repository I've compiled tips and tricks, example AWS CLI commands and an [alias](cli/alias) file (`~/.aws/cli/alias`) with useful commands to help you get the most out of the AWS CLI. 
 
 To learn about AWS CLI configuration tips, visit the [Getting Started](docs/GettingStarted.md) documentation.
+
+If you have or come up with additional widely useful commands an aliases, please open a PR to contribute them.
 
 # Useful commands
 
@@ -10,7 +12,7 @@ To learn about AWS CLI configuration tips, visit the [Getting Started](docs/Gett
 
 ### List instances that have a specific tag key, show its tag value and a subset of relevant data
 
-The following command uses server-side filtering (`--filter`) to list EC2 instances that have the tag `Name`. Then, using client-side filtering reduces the output to a the fields `InstanceId`, `InstanceType`, `ÀvailabilityZone`, `PrivateIP`, `PublicIP` and `<Value of the given tag key>`, sorted by `AvailabilityZone`.
+The following command uses server-side filtering (`--filter`) to list EC2 instances that have the tag `Name`. Then, using client-side filtering reduces the output to a the fields `InstanceId`, `InstanceType`, `AvailabilityZone`, `PrivateIP`, `PublicIP` and `<Value of the given tag key>`, sorted by `AvailabilityZone`.
 
 > [!TIP]
 > Always prefer server-side filtering when working with a large number of elements. 
